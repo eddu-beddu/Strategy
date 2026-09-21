@@ -55,38 +55,38 @@
     '................',
     '.......oooo.....',
     '......ommmmo....',
-    '......ossso.....',
+    '......osssso....',
     '.....obbbbbo....',
-    '....caaaaaao.w..',
-    '....caaaaaao.w..',
-    '.....oaaaao..w..',
-    '..ogggggggggo...',
-    '.oggggggggggggo.',
-    'oggggmgggggggggo',
-    'ogggggggggggggo.',
-    '.og.gg.o.gg.go..',
-    '..o.oo.o.oo.o...',
-    '..o.oo.o.oo.o...',
-    '..ooooo.ooooo...'
+    '....caaaaaaow...',
+    '....caaaaaaow...',
+    '.....oaaaaoow...',
+    '.d...ooaaaoow...',
+    'ddoogggggggggoo.',
+    '.dgggggggggggggo',
+    '..ogggggggggggg.',
+    '..gg.gg..gg.ogo.',
+    '..oo.oo..oo.....',
+    '..oo.oo..oo.....',
+    '..oo.oo..oo.....'
   ];
 
   S.flier = [
-    '..cc............',
-    '.cccc..oooo.....',
-    'cccccc.ohhho....',
-    '.cccccchssssh...',
-    '..cccc.sesesm...',
-    '...cc.obbbbom...',
-    '....ooaaaaaom...',
-    '...oaaaaaaaom...',
-    '..ogggggggggom..',
-    '.ogggggggggggo..',
-    'oggggggggggggo..',
-    '.oggggggggggo...',
-    '..og.gg.gg.go...',
-    '..o.oo.oo.o.o...',
-    '..o.oo.oo.o.....',
-    '..ooo..oooo.....'
+    '.mm.............',
+    'mmmm....oooo....',
+    'mmmmm..ohhhho...',
+    '.mmmmm.hssssh...',
+    '..mmmm.seseso...',
+    '...mm.obbbbo....',
+    '..m..oaaaaaow...',
+    '..mmoaaaaaaow...',
+    '.d.ooggggggoow..',
+    'ddogggggggggggo.',
+    '.dggggggggggggmg',
+    '..ogggggggggggg.',
+    '..gg.gg..gg.ogo.',
+    '..oo.oo..oo.....',
+    '..oo.oo..oo.....',
+    '..oo.oo..oo.....'
   ];
 
   S.mage = [
@@ -127,6 +127,159 @@
     '................'
   ];
 
+
+  S.lord = [
+    '................',
+    '.....oooooo.....',
+    '....ommmmmmo....',
+    '....ohhhhhho....',
+    '....hssssssh....',
+    '....seseseso....',
+    '.....ssssss.....',
+    '..c.oobbboo.....',
+    '.ccooaaaaaoo.w..',
+    '.cccoaaaaaao.w..',
+    '.ccc.aaaaaa..w..',
+    '.cc..abbbba.ow..',
+    '.c...am..ma..d..',
+    '....ommo.ommo...',
+    '....om....mo....',
+    '................'
+  ];
+
+  S.brute = [
+    '................',
+    '.....oooooo.....',
+    '....ohhhhhho....',
+    '....hssssssh....',
+    '....sesesess....',
+    '.....ssssss..ww.',
+    '..oooobbboooo.w.',
+    '.oaaaaaaaaaao.w.',
+    '.oaaaaaaaaaaowww',
+    '.oaaaaaaaaao.ww.',
+    '..oaaaaaaao..d..',
+    '...abbbbba...d..',
+    '...am....ma..d..',
+    '..ommo..ommo....',
+    '..om......mo....',
+    '................'
+  ];
+
+  S.swordsman = [
+    '................',
+    '......oooo......',
+    '.....ohhhho.....',
+    '....hhssssh.....',
+    '....hsesess.....',
+    '.....ossso...w..',
+    '....oobboo...w..',
+    '...oaaaaao...w..',
+    '..caaaaaaao..w..',
+    '..caaaaaao..ow..',
+    '..c.aaaaa...od..',
+    '....abbba....d..',
+    '....am.ma.......',
+    '...ommommo......',
+    '...om..omo......',
+    '................'
+  ];
+
+  S.soldier = [
+    '................',
+    '.....ommmmo.....',
+    '....ommmmmmo....',
+    '....ohssssho....',
+    '....ssesess.....',
+    '.....ssss....w..',
+    '...ooobboo...w..',
+    '..mmoaaaaao..w..',
+    '..mmoaaaaaao.w..',
+    '..mm.aaaaao..w..',
+    '..mm.aaaaa...d..',
+    '.....abbba...d..',
+    '.....am.ma...d..',
+    '....ommommo.....',
+    '....om..omo.....',
+    '................'
+  ];
+
+  S.rogue = [
+    '................',
+    '.....obbbo......',
+    '....obbbbbo.....',
+    '....bssssb......',
+    '....seses.b.....',
+    '.....ssss.b..w..',
+    '....oobboo...w..',
+    '...obaaaabo..w..',
+    '..cbaaaaaabow...',
+    '..cbaaaaaabo....',
+    '..c.aaaaaa......',
+    '....abbbba......',
+    '....am..ma......',
+    '...ommo.ommo....',
+    '...om....omo....',
+    '................'
+  ];
+
+  S.wyvern = [
+    'k...............',
+    'kkk.....oooo....',
+    'kkkkk..ommmmo...',
+    'kkkkkkkosssso...',
+    '.kkkkk.ssesso...',
+    '..kkk.obbbbbo...',
+    '..kk.oaaaaaaow..',
+    '..kkoaaaaaaaow..',
+    '.k.ooggggggggw..',
+    'kkoggggggggggoo.',
+    '.kggggggggggggog',
+    '..ogggggggggggg.',
+    '..gg.gg..gg.ogo.',
+    '..ok.ok..ok.....',
+    '..oo.oo..oo.....',
+    '..oo.oo..oo.....'
+  ];
+
+  S.cleric = [
+    '................',
+    '......oooo......',
+    '.....occcco.....',
+    '....ocssssco....',
+    '....csesesc.....',
+    '.....ssss...om..',
+    '....oocccoo.mm..',
+    '...ocaaaaco.om..',
+    '...caaaaaac..d..',
+    '..caaaaaaaac.d..',
+    '..cabbbbbbac.d..',
+    '..caaaaaaaac.d..',
+    '..caaaaaaaac....',
+    '.ccaaaaaaaacc...',
+    '.ccccccccccc....',
+    '..occccccco.....'
+  ];
+
+  S.darkmage = [
+    '................',
+    '.....oooooo.....',
+    '....obbbbbbo....',
+    '....bbssssbb....',
+    '....bseseshb....',
+    '.....ssss...ow..',
+    '....oobbboo.ww..',
+    '...obaaaabo.ww..',
+    '...baaaaaab.ow..',
+    '..baaaaaaaab.d..',
+    '..baaaaaaaab.d..',
+    '..babbbbbbab....',
+    '..baaaaaaaab....',
+    '.bbaaaaaaaabb...',
+    '.bbbbbbbbbbb....',
+    '..obbbbbbbbo....'
+  ];
+
   var TEAM_PALETTE = {
     player: { a: '#4b7fd6', b: '#27508f', c: '#7fa9ee' },
     enemy:  { a: '#c8402e', b: '#7d1d14', c: '#e57c62' },
@@ -136,7 +289,8 @@
 
   var COMMON = {
     o: '#161320', s: '#f2c79a', h: '#6a4526', m: '#c9cfda',
-    w: '#eef0f4', d: '#8a5a2b', e: '#161320', g: '#8d6b4d'
+    w: '#eef0f4', d: '#8a5a2b', e: '#161320', g: '#8d6b4d',
+    k: '#4a3550'   /* wyvern wing membrane */
   };
 
   var cache = {};
@@ -157,8 +311,8 @@
     for (k in tp) pal[k] = tp[k];
     if (hair) pal.h = hair;
     /* horses/wyverns take a tinted hide so teams still read apart */
-    if (team === 'enemy') pal.g = '#7a4f3c';
-    if (team === 'ally') pal.g = '#6f7f55';
+    if (team === 'enemy') { pal.g = '#7a4f3c'; pal.k = '#5a2230'; }
+    if (team === 'ally') { pal.g = '#6f7f55'; pal.k = '#2f4a38'; }
 
     for (var y = 0; y < h; y++) {
       var row = matrix[y];

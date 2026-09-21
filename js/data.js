@@ -34,7 +34,7 @@ FE.PROMO_CAP_BONUS = 6; /* promoted classes cap higher */
 FE.CLASSES = {
   /* ---- Player-side tier 1 ---- */
   lord: {
-    name: 'Lord', mov: 5, con: 7, sprite: 'infantry', tags: ['foot'],
+    name: 'Lord', mov: 5, con: 7, sprite: 'lord', tags: ['foot'],
     weapons: ['sword'], ranks: { sword: 'D' }, promo: 'greatlord',
     bases: { hp: 18, str: 5, mag: 1, skl: 6, spd: 7, lck: 7, def: 5, res: 1 },
     growths: { hp: 80, str: 50, mag: 15, skl: 55, spd: 55, lck: 60, def: 35, res: 30 }
@@ -58,13 +58,13 @@ FE.CLASSES = {
     growths: { hp: 80, str: 45, mag: 10, skl: 50, spd: 45, lck: 35, def: 25, res: 20 }
   },
   myrmidon: {
-    name: 'Myrmidon', mov: 5, con: 8, sprite: 'infantry', tags: ['foot'],
+    name: 'Myrmidon', mov: 5, con: 8, sprite: 'swordsman', tags: ['foot'],
     weapons: ['sword'], ranks: { sword: 'D' }, promo: 'swordmaster', crit: 10,
     bases: { hp: 17, str: 4, mag: 0, skl: 9, spd: 11, lck: 5, def: 3, res: 1 },
     growths: { hp: 70, str: 40, mag: 10, skl: 60, spd: 60, lck: 40, def: 20, res: 25 }
   },
   fighter: {
-    name: 'Fighter', mov: 5, con: 12, sprite: 'infantry', tags: ['foot'],
+    name: 'Fighter', mov: 5, con: 12, sprite: 'brute', tags: ['foot'],
     weapons: ['axe'], ranks: { axe: 'D' }, promo: 'warrior',
     bases: { hp: 25, str: 8, mag: 0, skl: 4, spd: 5, lck: 3, def: 4, res: 0 },
     growths: { hp: 90, str: 55, mag: 10, skl: 40, spd: 40, lck: 30, def: 25, res: 15 }
@@ -82,7 +82,7 @@ FE.CLASSES = {
     growths: { hp: 65, str: 10, mag: 55, skl: 50, spd: 50, lck: 40, def: 15, res: 45 }
   },
   cleric: {
-    name: 'Cleric', mov: 5, con: 5, sprite: 'mage', tags: ['foot'],
+    name: 'Cleric', mov: 5, con: 5, sprite: 'cleric', tags: ['foot'],
     weapons: ['staff'], ranks: { staff: 'D' }, promo: 'bishop',
     bases: { hp: 16, str: 0, mag: 5, skl: 3, spd: 6, lck: 8, def: 2, res: 7 },
     growths: { hp: 65, str: 10, mag: 50, skl: 40, spd: 45, lck: 60, def: 12, res: 50 }
@@ -94,7 +94,7 @@ FE.CLASSES = {
     growths: { hp: 65, str: 40, mag: 15, skl: 50, spd: 60, lck: 45, def: 20, res: 45 }
   },
   thief: {
-    name: 'Thief', mov: 6, con: 7, sprite: 'infantry', tags: ['foot', 'thief'],
+    name: 'Thief', mov: 6, con: 7, sprite: 'rogue', tags: ['foot', 'thief'],
     weapons: ['sword'], ranks: { sword: 'E' }, promo: 'assassin',
     bases: { hp: 16, str: 3, mag: 0, skl: 6, spd: 11, lck: 4, def: 2, res: 1 },
     growths: { hp: 65, str: 30, mag: 10, skl: 55, spd: 65, lck: 45, def: 15, res: 25 }
@@ -102,7 +102,7 @@ FE.CLASSES = {
 
   /* ---- Promoted ---- */
   greatlord: {
-    name: 'Great Lord', mov: 6, con: 9, sprite: 'infantry', tags: ['foot'], promoted: true,
+    name: 'Great Lord', mov: 6, con: 9, sprite: 'lord', tags: ['foot'], promoted: true,
     weapons: ['sword', 'lance'], ranks: { sword: 'B', lance: 'D' },
     bases: { hp: 5, str: 3, mag: 1, skl: 2, spd: 2, lck: 0, def: 4, res: 3 },
     growths: { hp: 80, str: 50, mag: 20, skl: 50, spd: 50, lck: 60, def: 40, res: 35 }
@@ -126,13 +126,13 @@ FE.CLASSES = {
     growths: { hp: 80, str: 45, mag: 10, skl: 45, spd: 45, lck: 35, def: 30, res: 25 }
   },
   swordmaster: {
-    name: 'Swordmaster', mov: 6, con: 9, sprite: 'infantry', tags: ['foot'], promoted: true, crit: 30,
+    name: 'Swordmaster', mov: 6, con: 9, sprite: 'swordsman', tags: ['foot'], promoted: true, crit: 30,
     weapons: ['sword'], ranks: { sword: 'A' },
     bases: { hp: 4, str: 2, mag: 0, skl: 4, spd: 4, lck: 0, def: 2, res: 4 },
     growths: { hp: 70, str: 40, mag: 10, skl: 55, spd: 55, lck: 40, def: 25, res: 30 }
   },
   warrior: {
-    name: 'Warrior', mov: 6, con: 14, sprite: 'infantry', tags: ['foot'], promoted: true,
+    name: 'Warrior', mov: 6, con: 14, sprite: 'brute', tags: ['foot'], promoted: true,
     weapons: ['axe', 'bow'], ranks: { axe: 'A', bow: 'D' },
     bases: { hp: 7, str: 3, mag: 0, skl: 2, spd: 2, lck: 0, def: 2, res: 3 },
     growths: { hp: 90, str: 55, mag: 10, skl: 40, spd: 40, lck: 30, def: 30, res: 20 }
@@ -150,7 +150,7 @@ FE.CLASSES = {
     growths: { hp: 65, str: 10, mag: 50, skl: 45, spd: 45, lck: 40, def: 20, res: 45 }
   },
   bishop: {
-    name: 'Bishop', mov: 6, con: 7, sprite: 'mage', tags: ['foot'], promoted: true,
+    name: 'Bishop', mov: 6, con: 7, sprite: 'cleric', tags: ['foot'], promoted: true,
     weapons: ['light', 'staff'], ranks: { light: 'A', staff: 'B' },
     bases: { hp: 4, str: 1, mag: 3, skl: 3, spd: 2, lck: 0, def: 2, res: 5 },
     growths: { hp: 65, str: 10, mag: 50, skl: 45, spd: 40, lck: 55, def: 18, res: 50 }
@@ -162,7 +162,7 @@ FE.CLASSES = {
     growths: { hp: 65, str: 40, mag: 20, skl: 50, spd: 55, lck: 45, def: 25, res: 45 }
   },
   assassin: {
-    name: 'Assassin', mov: 7, con: 9, sprite: 'infantry', tags: ['foot', 'thief'], promoted: true, crit: 20,
+    name: 'Assassin', mov: 7, con: 9, sprite: 'rogue', tags: ['foot', 'thief'], promoted: true, crit: 20,
     weapons: ['sword'], ranks: { sword: 'A' },
     bases: { hp: 3, str: 2, mag: 0, skl: 4, spd: 3, lck: 0, def: 2, res: 3 },
     growths: { hp: 65, str: 35, mag: 10, skl: 55, spd: 60, lck: 45, def: 20, res: 25 }
@@ -170,37 +170,37 @@ FE.CLASSES = {
 
   /* ---- Enemy-flavour classes ---- */
   brigand: {
-    name: 'Brigand', mov: 5, con: 13, sprite: 'infantry', tags: ['foot'],
+    name: 'Brigand', mov: 5, con: 13, sprite: 'brute', tags: ['foot'],
     weapons: ['axe'], ranks: { axe: 'D' },
     bases: { hp: 22, str: 7, mag: 0, skl: 3, spd: 4, lck: 0, def: 3, res: 0 },
     growths: { hp: 85, str: 50, mag: 0, skl: 30, spd: 30, lck: 10, def: 20, res: 10 }
   },
   soldier: {
-    name: 'Soldier', mov: 5, con: 10, sprite: 'infantry', tags: ['foot'],
+    name: 'Soldier', mov: 5, con: 10, sprite: 'soldier', tags: ['foot'],
     weapons: ['lance'], ranks: { lance: 'D' },
     bases: { hp: 20, str: 5, mag: 0, skl: 4, spd: 4, lck: 1, def: 4, res: 1 },
     growths: { hp: 75, str: 40, mag: 0, skl: 35, spd: 35, lck: 15, def: 25, res: 15 }
   },
   shaman: {
-    name: 'Shaman', mov: 5, con: 7, sprite: 'mage', tags: ['foot'],
+    name: 'Shaman', mov: 5, con: 7, sprite: 'darkmage', tags: ['foot'],
     weapons: ['dark'], ranks: { dark: 'D' },
     bases: { hp: 18, str: 1, mag: 6, skl: 4, spd: 3, lck: 1, def: 3, res: 6 },
     growths: { hp: 70, str: 5, mag: 50, skl: 40, spd: 30, lck: 20, def: 18, res: 40 }
   },
   wyvern: {
-    name: 'Wyvern Rider', mov: 7, con: 12, sprite: 'flier', tags: ['flier', 'mounted'],
+    name: 'Wyvern Rider', mov: 7, con: 12, sprite: 'wyvern', tags: ['flier', 'mounted'],
     weapons: ['lance', 'axe'], ranks: { lance: 'D', axe: 'E' },
     bases: { hp: 24, str: 8, mag: 0, skl: 5, spd: 5, lck: 2, def: 9, res: 0 },
     growths: { hp: 85, str: 50, mag: 5, skl: 40, spd: 35, lck: 20, def: 35, res: 15 }
   },
   bandit: {
-    name: 'Bandit Chief', mov: 5, con: 14, sprite: 'infantry', tags: ['foot'], promoted: true,
+    name: 'Bandit Chief', mov: 5, con: 14, sprite: 'brute', tags: ['foot'], promoted: true,
     weapons: ['axe'], ranks: { axe: 'B' },
     bases: { hp: 32, str: 11, mag: 0, skl: 6, spd: 6, lck: 2, def: 7, res: 2 },
     growths: { hp: 85, str: 50, mag: 0, skl: 35, spd: 35, lck: 15, def: 25, res: 15 }
   },
   priest: {
-    name: 'Priest', mov: 5, con: 6, sprite: 'mage', tags: ['foot'],
+    name: 'Priest', mov: 5, con: 6, sprite: 'cleric', tags: ['foot'],
     weapons: ['staff'], ranks: { staff: 'C' },
     bases: { hp: 18, str: 0, mag: 5, skl: 3, spd: 5, lck: 3, def: 2, res: 6 },
     growths: { hp: 65, str: 5, mag: 45, skl: 35, spd: 40, lck: 30, def: 12, res: 45 }
