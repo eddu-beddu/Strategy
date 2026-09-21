@@ -723,3 +723,31 @@ body[data-screen="title"] #app { visibility: hidden; }
   .bondrow { grid-template-columns: 1fr auto; row-gap: 6px; }
   .bondrow__names { grid-column: 1 / -1; }
 }
+
+/* ---------- ending epilogues ---------- */
+.endstats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0 4px;
+}
+.endstats span {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 5px 11px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.endstats b { color: var(--gold); font-family: var(--mono); margin-left: 4px; }
+.epi {
+  background: var(--panel);
+  border-left: 3px solid var(--blue);
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 6px;
+}
+.epi--fallen { border-left-color: var(--red); opacity: .75; }
+.epi__head { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.epi__head span { font-size: 11px; color: var(--muted); }
+.epi p { margin: 4px 0 0; font-size: 13px; line-height: 1.55; color: #c9c2de; }

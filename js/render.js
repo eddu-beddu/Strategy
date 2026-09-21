@@ -562,6 +562,21 @@
       this.drawUnit(view.anim.unit, view.anim.px, view.anim.py, { noGrey: true });
     }
 
+    /* the ground a defend map tells you to hold */
+    if (view.objectiveTile) {
+      var ox = view.objectiveTile.x * TS, oy = view.objectiveTile.y * TS;
+      var beat = 0.5 + Math.sin(Date.now() / 300) * 0.35;
+      ctx.save();
+      ctx.globalAlpha = beat;
+      ctx.strokeStyle = '#ffd45e';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(ox + 2, oy + 2, TS - 4, TS - 4);
+      ctx.globalAlpha = beat * 0.3;
+      ctx.fillStyle = '#ffd45e';
+      ctx.fillRect(ox, oy, TS, TS);
+      ctx.restore();
+    }
+
     /* cursor */
     if (view.cursor) {
       var cx2 = view.cursor.x * TS, cy2 = view.cursor.y * TS;

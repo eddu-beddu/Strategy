@@ -93,6 +93,7 @@
       def.level = (d.level || 1) + diffBonus;
       var u = FE.makeUnit(def);
       u.drops = d.drops || null;
+      u.quote = d.quote || null;
       board.units.push(u);
     });
 
@@ -181,6 +182,8 @@
       case 'boss': return 'Objective: defeat the commander.';
       case 'seize': return 'Objective: seize the throne/gate.';
       case 'survive': return 'Objective: survive ' + o.turns + ' turns.';
+      case 'escape': return 'Objective: get Aleryn to the escape point.';
+      case 'defend': return 'Objective: hold the marked ground for ' + o.turns + ' turns.';
       default: return 'Objective: win.';
     }
   }
@@ -717,6 +720,9 @@
     if (terr.seize && chapter().objective.type === 'seize' && u.lordRef) {
       opts.push({ id: 'seize', label: 'Seize' });
     }
+    if (terr.escape && chapter().objective.type === 'escape') {
+      opts.push({ id: 'escape', label: 'Escape' });
+    }
 
     if (u.items.length) opts.push({ id: 'item', label: 'Item' });
     if (adjacentAllies(u).filter(function (o) { return o.team === 'player'; }).length && u.items.length) {
@@ -739,6 +745,7 @@
       case 'visit': doVisit(); break;
       case 'chest': doChest(); break;
       case 'seize': doSeize(); break;
+      case 'escape': doEscape(); break;
       case 'item': openItemMenu(); break;
       case 'give': beginTargeting('give'); break;
       default: finishUnit(u);
@@ -998,6 +1005,38 @@
     });
   }
 
+  /* Leaving the map. The lord going last ends the chapter, so the game
+     checks before letting her walk off without the others. */
+  function doEscape() {
+    var u = G.selected;
+    var stranded = G.board.livingUnits('player').filter(function (o) { return o !== u; });
+    if (u.lordRef && stranded.length) {
+      UI.dialog({
+        title: 'Escape?',
+        body: '<p>' + stranded.length + ' unit' + (stranded.length === 1 ? '' : 's')
+          + ' still on the field. If Aleryn leaves now, the chapter ends and they fall back without their share of the fighting.</p>',
+        buttons: [
+          { label: 'Go', primary: true, action: function () { UI.closeDialog(); finishEscape(u); } },
+          { label: 'Wait for them', action: function () { UI.closeDialog(); openActionMenu(); } }
+        ]
+      });
+      return;
+    }
+    finishEscape(u);
+  }
+
+  function finishEscape(u) {
+    u.escaped = true;
+    u.alive = false;
+    u.acted = true;
+    G.renderer.addFloater(u.x, u.y, 'away', '#ffe37a');
+    UI.log('<b>' + UI.esc(u.name) + '</b> slips off the map.', 'good');
+    clearSelection();
+    updateHeader();
+    if (u.lordRef) { endChapter(true); return; }
+    afterAction();
+  }
+
   function doSeize() {
     UI.log('<b>' + UI.esc(G.selected.name) + '</b> seizes the throne!', 'good');
     G.selected.acted = true;
@@ -1044,7 +1083,22 @@
     }
   }
 
+  /* Bosses get one line, the first time somebody picks a fight with them. */
+  function bossQuote(a, b) {
+    var boss = (a.boss && a.quote && !a.quoted) ? a : ((b.boss && b.quote && !b.quoted) ? b : null);
+    if (!boss) return null;
+    boss.quoted = true;
+    return boss;
+  }
+
   async function runCombat(attacker, defender, forcedWeapon) {
+    var speaker = bossQuote(attacker, defender);
+    if (speaker) {
+      await new Promise(function (resolve) {
+        storyDialog(speaker.name + (speaker.title ? ' \u2014 ' + speaker.title : ''),
+          speaker.quote, function () { UI.closeDialog(); resolve(); });
+      });
+    }
     attacker.aggroed = true;
     defender.aggroed = true;
     var startHpA = attacker.hp, startHpD = defender.hp;
@@ -1186,7 +1240,8 @@
   function startPlayerPhase(first) {
     G.phase = 'player';
     var ch = chapter();
-    if (!first && ch.objective.type === 'survive' && G.turn > ch.objective.turns) {
+    if (!first && (ch.objective.type === 'survive' || ch.objective.type === 'defend')
+        && G.turn > ch.objective.turns) {
       endChapter(true);
       return;
     }
@@ -1251,6 +1306,8 @@
       await actUnit(allies[j]);
     }
 
+    if (checkDefendBreached()) return;
+
     G.turn++;
     G.campaign.turnsTotal++;
     G.mode = 'idle';
@@ -1272,6 +1329,7 @@
         def.level = (d.level || 1) + diffBonus;
         var u = FE.makeUnit(def);
         u.drops = d.drops || null;
+        u.quote = d.quote || null;
         G.board.units.push(u);
         G.renderer.addFloater(u.x, u.y, '!', '#ff9f43');
         any = true;
@@ -1335,8 +1393,27 @@
     if (G.mode === 'over') return true;
     var players = G.board.livingUnits('player');
     var lord = players.filter(function (u) { return u.lordRef; });
-    if (!lord.length) { endChapter(false, 'Aleryn has fallen.'); return true; }
-    if (!players.length) { endChapter(false, 'The company is destroyed.'); return true; }
+    var lordEscaped = G.board.units.some(function (u) { return u.lordRef && u.escaped; });
+    if (!lord.length && !lordEscaped) { endChapter(false, 'Aleryn has fallen.'); return true; }
+    if (!players.length && !lordEscaped) { endChapter(false, 'The company is destroyed.'); return true; }
+    return false;
+  }
+
+  /* A defend map is lost the moment the enemy stands on the ground you
+     were told to hold. */
+  function defendTile() {
+    var o = chapter().objective;
+    return o.type === 'defend' && o.tile ? { x: o.tile[0], y: o.tile[1] } : null;
+  }
+
+  function checkDefendBreached() {
+    var t = defendTile();
+    if (!t) return false;
+    var occ = G.board.unitAt(t.x, t.y);
+    if (occ && occ.team === 'enemy') {
+      endChapter(false, 'The enemy took the ground you were holding.');
+      return true;
+    }
     return false;
   }
 
@@ -1365,8 +1442,11 @@
 
     /* survivors come home; casual-mode casualties get back up */
     G.board.livingUnits('player').concat(
-      G.board.units.filter(function (u) { return u.team === 'player' && u.casualDown; })
+      G.board.units.filter(function (u) {
+        return u.team === 'player' && (u.casualDown || u.escaped);
+      })
     ).forEach(function (u) {
+      u.escaped = false;
       u.alive = true;
       u.casualDown = false;
       u.hp = Math.max(1, Math.round(FE.maxHp(u) * 0.75));
@@ -1378,7 +1458,7 @@
       if (u.rosterId && G.campaign.roster[u.rosterId] === u) u.team = 'player';
     });
 
-    var reward = ch.reward || (800 + G.campaign.chapterIndex * 300);
+    var reward = ch.reward === undefined ? (800 + G.campaign.chapterIndex * 300) : ch.reward;
     G.campaign.gold += reward;
     UI.log('Chapter reward: <b>' + reward + 'G</b>.', 'good');
 
@@ -1388,9 +1468,20 @@
       UI.closeDialog();
       playConversations(function () {
         if (isLast) { showEnding(); return; }
-        G.campaign.chapterIndex++;
-        saveGame(true);
-        beginChapter();
+        var interlude = FE.INTERLUDES[G.campaign.chapterIndex];
+        var advance = function () {
+          G.campaign.chapterIndex++;
+          saveGame(true);
+          beginChapter();
+        };
+        if (interlude) {
+          storyDialog(interlude.title, interlude.lines, function () {
+            UI.closeDialog();
+            advance();
+          });
+        } else {
+          advance();
+        }
       });
     });
   }
@@ -1404,18 +1495,36 @@
   function showEnding() {
     var roster = livingRoster();
     var rows = roster.map(function (u) {
-      return '<div class="endrow"><b>' + UI.esc(u.name) + '</b><span>' + UI.esc(FE.CLASSES[u.cls].name)
-        + ' Lv ' + u.level + '</span><span>' + u.kills + ' kills</span></div>';
+      var epi = FE.EPILOGUES[u.id];
+      return '<div class="epi"><div class="epi__head"><b>' + UI.esc(u.name) + '</b>'
+        + '<span>' + UI.esc(FE.CLASSES[u.cls].name) + ' Lv ' + u.level
+        + ' &middot; ' + u.kills + ' kill' + (u.kills === 1 ? '' : 's') + '</span></div>'
+        + (epi ? '<p>' + UI.esc(epi) + '</p>' : '') + '</div>';
     }).join('');
     var fallen = G.campaign.fallen.map(function (f) {
-      return '<div class="endrow endrow--fallen"><b>' + UI.esc(f.name) + '</b><span>fell at ' + UI.esc(f.chapter) + '</span></div>';
+      return '<div class="epi epi--fallen"><div class="epi__head"><b>' + UI.esc(f.name) + '</b>'
+        + '<span>' + UI.esc(f.chapter) + '</span></div>'
+        + '<p>' + UI.esc(f.name + ' ' + FE.EPILOGUE_FALLEN + '.') + '</p></div>';
     }).join('');
+
+    var lordAlive = roster.some(function (u) { return u.lordRef; });
     UI.dialog({
-      title: 'The March of Vale',
+      title: 'Afterwards',
       wide: true,
-      body: '<div class="story"><p>Total turns taken: <b>' + G.campaign.turnsTotal + '</b></p></div>'
-        + '<h4>Survivors</h4>' + rows
-        + (fallen ? '<h4>The fallen</h4>' + fallen : '<p class="muted">Nobody was lost. Remarkable.</p>'),
+      body: '<div class="story">'
+        + '<p>Vale was never restored. There was no mechanism by which it could be: the transfer'
+        + ' was lawful, the debt was real, and the only person who could have undone it had been'
+        + ' dead since the first night.</p>'
+        + '<p>What survived was the ledger, in four copies, and eleven people who had read it.</p>'
+        + '</div>'
+        + '<div class="endstats"><span>Chapters cleared <b>' + FE.CHAPTERS.length + '</b></span>'
+        + '<span>Turns taken <b>' + G.campaign.turnsTotal + '</b></span>'
+        + '<span>Lost <b>' + G.campaign.fallen.length + '</b></span>'
+        + '<span>Gold left <b>' + G.campaign.gold + '</b></span></div>'
+        + '<h4>Afterwards</h4>' + rows
+        + (fallen ? '<h4>The fallen</h4>' + fallen : '')
+        + (lordAlive && !G.campaign.fallen.length
+            ? '<p class="muted">Nobody was lost. That is not how these usually go.</p>' : ''),
       buttons: [{ label: 'Title screen', primary: true, action: function () { UI.closeDialog(); showTitle(); } }]
     });
   }
@@ -1442,7 +1551,7 @@
     ['uid', 'id', 'name', 'cls', 'team', 'level', 'exp', 'stats', 'growths', 'wexp',
       'items', 'x', 'y', 'acted', 'alive', 'ai', 'aggro', 'aggroed', 'boss', 'hair',
       'drops', 'title', 'desc', 'kills', 'battles', 'hp', 'maxHp', 'lordRef',
-      'rosterId', 'talk', 'casualDown', 'supports', 'supportGain'].forEach(function (k) {
+      'rosterId', 'talk', 'casualDown', 'supports', 'supportGain', 'escaped', 'quote', 'quoted'].forEach(function (k) {
         if (u[k] !== undefined) o[k] = u[k];
       });
     return o;
@@ -1781,7 +1890,10 @@
     G.campaign = newCampaign({ difficulty: diff, casual: casual });
     UI.$('#titleScreen').classList.remove('is-open');
     document.body.dataset.screen = 'prep';
-    beginChapter();
+    storyDialog(FE.OPENING.title, FE.OPENING.lines, function () {
+      UI.closeDialog();
+      beginChapter();
+    });
   }
 
   /* ---------------------------------------------------------------
@@ -1797,6 +1909,7 @@
         danger: G.danger ? G.dangerTiles : null,
         path: G.mode === 'moving' ? G.path : null,
         cursor: G.cursor,
+        objectiveTile: G.screen === 'map' ? defendTile() : null,
         hideUnit: G.hideUnit,
         anim: G.anim,
         blinkUnit: G.mode === 'target' ? G.targets[G.targetIndex] : G.selected
@@ -1908,29 +2021,56 @@
       body: '<div class="help">'
         + '<h4>The idea</h4>'
         + '<p>Two armies take turns. Move each of your units, then the enemy moves. '
-        + 'Units that fall are gone for good unless you turned on Forgiving mode.</p>'
+        + 'Units that fall are gone for the rest of the campaign \u2014 along with everything in '
+        + 'their pack \u2014 unless you turned on Forgiving mode.</p>'
         + '<h4>Controls</h4>'
         + '<ul>'
-        + '<li><b>Click a unit</b> to select; blue tiles are where it can go, red where it can strike.</li>'
+        + '<li><b>Click a unit</b> to select it. Blue tiles are where it can go, red where it can strike.</li>'
         + '<li><b>Click a tile</b> to move there, then pick an action.</li>'
-        + '<li><b>Right-click / Esc</b> cancels — including undoing a move before you act.</li>'
-        + '<li><b>Arrows + Enter</b> work too. <b>Tab</b> cycles unused units, <b>E</b> ends the turn, <b>Q</b> toggles the danger zone.</li>'
+        + '<li><b>Right-click / Esc</b> cancels \u2014 including undoing a move, right up until you commit to an action.</li>'
+        + '<li><b>Arrows + Enter</b> work too. <b>Tab</b> cycles unused units, <b>E</b> ends the turn, '
+        + '<b>Q</b> toggles the danger zone, <b>B</b> toggles battle scenes.</li>'
         + '</ul>'
         + '<h4>The weapon triangle</h4>'
-        + '<p>Swords beat axes, axes beat lances, lances beat swords (+1 damage, +15 hit, and the reverse against you). '
-        + 'For magic: anima beats light, light beats dark, dark beats anima.</p>'
+        + '<p>Swords beat axes, axes beat lances, lances beat swords: +1 damage and +15 hit, and the '
+        + 'reverse against you. For magic: anima beats light, light beats dark, dark beats anima. '
+        + 'Tomes hit Resistance; everything else hits Defence.</p>'
         + '<h4>Numbers that matter</h4>'
         + '<ul>'
-        + '<li><b>Doubling:</b> 4 or more attack speed than your foe and you strike twice. Heavy weapons cut attack speed if your Con is low.</li>'
-        + '<li><b>Hit rates</b> use the series\' two-roll system: displayed rates above 50 land more often than the number suggests, below 50 less.</li>'
+        + '<li><b>Doubling:</b> 4 or more attack speed than your foe and you strike twice. Heavy weapons '
+        + 'cut attack speed when your Constitution is low.</li>'
+        + '<li><b>Hit rates</b> use the series\u2019 two-roll system: displayed rates above 50 land more '
+        + 'often than the number suggests, below 50 less.</li>'
         + '<li><b>Terrain</b> gives defence and avoid. Forts and thrones also heal each turn.</li>'
-        + '<li><b>Bows</b> are effective against fliers; hammers and armourslayers against armour; horseslayers against cavalry.</li>'
+        + '<li><b>Effective weapons</b> triple their might: bows against fliers, hammers and armourslayers '
+        + 'against armour, horseslayers and the Rapier against cavalry.</li>'
+        + '</ul>'
+        + '<h4>Bonds</h4>'
+        + '<p>Units who end a turn beside each other, or fight side by side, build a support. At C, B and A '
+        + 'an adjacent partner is worth up to +15 hit, +15 avoid, +2 damage and +5 crit, and each rank '
+        + 'unlocks a conversation. Check the Bonds tab in preparations.</p>'
+        + '<h4>Between chapters</h4>'
+        + '<ul>'
+        + '<li><b>Deploy</b> who you want from the roster \u2014 benched units keep their levels.</li>'
+        + '<li><b>The armoury</b> sells weapons, and the convoy sells back at half price. Stock widens as '
+        + 'the campaign goes on.</li>'
+        + '<li><b>Promotion:</b> at level 10 the right promotion item turns a unit into its advanced class.</li>'
+        + '</ul>'
+        + '<h4>Objectives</h4>'
+        + '<ul>'
+        + '<li><b>Rout</b> \u2014 defeat everyone. <b>Commander</b> \u2014 defeat the boss.</li>'
+        + '<li><b>Seize</b> \u2014 get Aleryn onto the throne or gate and choose Seize.</li>'
+        + '<li><b>Survive</b> \u2014 last the stated number of turns.</li>'
+        + '<li><b>Escape</b> \u2014 reach the escape tiles. When Aleryn leaves, the chapter ends.</li>'
+        + '<li><b>Defend</b> \u2014 hold the marked tile. If an enemy ends a turn on it, you lose.</li>'
         + '</ul>'
         + '<h4>Other things to try</h4>'
         + '<ul>'
-        + '<li>Visit villages with any unit — they hand over items.</li>'
-        + '<li>Units marked <b>!</b> can be recruited: move Aleryn next to them and choose <b>Talk</b>.</li>'
-        + '<li>At level 10 a promotion item turns a unit into its advanced class.</li>'
+        + '<li>Visit villages with any unit \u2014 they hand over items.</li>'
+        + '<li>Units marked <b>!</b> can be recruited: move Aleryn next to them and choose <b>Talk</b>. '
+        + 'Four of the eleven join this way and are easy to miss.</li>'
+        + '<li>Turn the danger zone on before you commit to a move. It is the difference between losing '
+        + 'people and not.</li>'
         + '</ul>'
         + '</div>',
       buttons: [{ label: 'Got it', primary: true, action: UI.closeDialog }]
