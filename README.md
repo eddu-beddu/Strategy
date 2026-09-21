@@ -11,9 +11,8 @@ It runs in any modern browser with no build step, no dependencies and no asset f
 **Easiest:** clone or download the repo and open `index.html` in a browser. That's it —
 saving to `localStorage` works from `file://` too.
 
-**From a URL:** the repo ships a GitHub Pages workflow and `main` already has the game.
-Go to **Settings → Pages** and set *Source* to **GitHub Actions**; it will then be served
-at `https://eddu-beddu.github.io/Strategy/`.
+**From a URL:** it is deployed to GitHub Pages from `main` on every push —
+**https://eddu-beddu.github.io/Strategy/**
 
 **Locally over HTTP**, if you prefer:
 
