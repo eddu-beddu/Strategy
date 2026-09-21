@@ -87,6 +87,9 @@ animation starts, so skipping never changes what happened.
 ## Quality of life
 
 - **Danger zone** (`Q`) hatches every tile the enemy can reach next turn.
+
+  ![The danger zone, hatched over the Iron Gate](docs/danger-zone.png)
+
 - **Undo a move** with right-click or `Esc`, right up until you commit to an action.
 - **Battle forecast** shows damage, hit, crit and doubling for both sides, and flags when
   either side can kill.
