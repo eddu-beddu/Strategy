@@ -31,6 +31,7 @@
     targetIndex: 0,
     hoverUnit: null,
     speed: 1,
+    battleScene: true,
     campaign: null
   };
 
@@ -828,6 +829,43 @@
   /* ---------------------------------------------------------------
      Combat execution
      --------------------------------------------------------------- */
+  /* Writes the combat log for one strike. The HP change itself is applied
+     by whichever presentation is playing. */
+  function logStrike(ev) {
+    var actor = ev.actor, target = ev.target;
+    if (ev.hit) {
+      if (ev.crit) UI.log(UI.esc(actor.name) + ' lands a <b>critical</b> on ' + UI.esc(target.name) + ' for ' + ev.dmg + '!', 'crit');
+      else UI.log(UI.esc(actor.name) + ' hits ' + UI.esc(target.name) + ' for ' + ev.dmg + '.');
+      if (ev.drain) UI.log(UI.esc(actor.name) + ' drains ' + ev.drain + ' HP.', 'good');
+    } else {
+      UI.log(UI.esc(actor.name) + ' misses ' + UI.esc(target.name) + '.', 'miss');
+    }
+  }
+
+  /* Combat played out on the map itself: a lunge, a flash, floating numbers. */
+  async function playOnMap(result, attacker, defender) {
+    for (var i = 0; i < result.events.length; i++) {
+      var ev = result.events[i];
+      var actor = ev.actor, target = ev.target;
+      if (actor.hp <= 0) break;
+      await lunge(actor, target);
+      if (ev.hit) {
+        target.hp = Math.max(0, target.hp - ev.dmg);
+        G.renderer.addFloater(target.x, target.y, '-' + ev.dmg, ev.crit ? '#ffd166' : '#ff6b6b');
+        if (ev.drain) {
+          actor.hp = Math.min(FE.maxHp(actor), actor.hp + ev.drain);
+          G.renderer.addFloater(actor.x, actor.y, '+' + ev.drain, '#7ce38b');
+        }
+      } else {
+        G.renderer.addFloater(target.x, target.y, 'miss', '#c8c8d4');
+      }
+      logStrike(ev);
+      refreshSidebar();
+      await sleep(320);
+      if (target.hp <= 0) break;
+    }
+  }
+
   async function runCombat(attacker, defender, forcedWeapon) {
     attacker.aggroed = true;
     defender.aggroed = true;
@@ -835,32 +873,20 @@
     var result = FE.resolveCombat(G.board, attacker, defender, forcedWeapon);
     if (!result) return;
 
-    /* Replay: resolveCombat already applied damage, so rewind for the show. */
+    /* resolveCombat settles the whole exchange up front so the outcome is
+       fixed; rewind the HP so the presentation can play it back. */
     attacker.hp = startHpA;
     defender.hp = startHpD;
 
-    var log = [];
-    for (var i = 0; i < result.events.length; i++) {
-      var ev = result.events[i];
-      var actor = ev.actor, target = ev.target;
-      await lunge(actor, target);
-      if (ev.hit) {
-        target.hp = Math.max(0, target.hp - ev.dmg);
-        G.renderer.addFloater(target.x, target.y, '-' + ev.dmg, ev.crit ? '#ffd166' : '#ff6b6b');
-        if (ev.crit) UI.log(UI.esc(actor.name) + ' lands a <b>critical</b> on ' + UI.esc(target.name) + ' for ' + ev.dmg + '!', 'crit');
-        else UI.log(UI.esc(actor.name) + ' hits ' + UI.esc(target.name) + ' for ' + ev.dmg + '.');
-        if (ev.drain) {
-          FE.heal(actor, 0); /* already applied by resolveCombat */
-          actor.hp = Math.min(FE.maxHp(actor), actor.hp + ev.drain);
-          G.renderer.addFloater(actor.x, actor.y, '+' + ev.drain, '#7ce38b');
-        }
-      } else {
-        G.renderer.addFloater(target.x, target.y, 'miss', '#c8c8d4');
-        UI.log(UI.esc(actor.name) + ' misses ' + UI.esc(target.name) + '.', 'miss');
-      }
+    if (G.battleScene) {
+      await FE.playBattle({
+        board: G.board, attacker: attacker, defender: defender,
+        result: result, speed: G.speed
+      });
+      result.events.forEach(logStrike);
       refreshSidebar();
-      await sleep(320);
-      if (target.hp <= 0) break;
+    } else {
+      await playOnMap(result, attacker, defender);
     }
 
     result.broke.forEach(function (b) {
@@ -1466,6 +1492,8 @@
   function onKey(e) {
     if (G.screen !== 'map') return;
     if (e.ctrlKey || e.metaKey || e.altKey) return;
+    /* while a battle is playing, the scene owns the keyboard */
+    if (FE.battleSceneOpen && FE.battleSceneOpen()) return;
     var k = e.key;
     if (UI.isDialogOpen()) {
       if (k === 'Enter' || k === ' ') {
@@ -1502,6 +1530,13 @@
     if (k === 'e' || k === 'E') { endTurnRequest(); return; }
     if (k === 'q' || k === 'Q') { toggleDanger(); return; }
     if (k === 'Tab') { e.preventDefault(); nextUnit(); return; }
+    if (k === 'b' || k === 'B') {
+      G.battleScene = !G.battleScene;
+      syncBattleButton();
+      savePrefs();
+      UI.log('Battle scenes ' + (G.battleScene ? 'on' : 'off') + '.');
+      return;
+    }
   }
 
   async function simulateClickAtCursor() {
@@ -1579,8 +1614,33 @@
   /* ---------------------------------------------------------------
      Boot
      --------------------------------------------------------------- */
+  var PREF_KEY = 'fe_valePrefs_v1';
+
+  function loadPrefs() {
+    try {
+      var p = JSON.parse(localStorage.getItem(PREF_KEY) || '{}');
+      if (p.battleScene !== undefined) G.battleScene = !!p.battleScene;
+      if (p.speed) G.speed = p.speed;
+    } catch (e) { /* first run, or storage unavailable */ }
+  }
+
+  function savePrefs() {
+    try {
+      localStorage.setItem(PREF_KEY, JSON.stringify({
+        battleScene: G.battleScene, speed: G.speed
+      }));
+    } catch (e) { /* not fatal */ }
+  }
+
+  function syncBattleButton() {
+    var b = UI.$('#btnBattles');
+    b.textContent = G.battleScene ? 'Battles: Full' : 'Battles: Quick';
+    b.classList.toggle('is-on', G.battleScene);
+  }
+
   FE.boot = function () {
     G.renderer = new FE.Renderer(UI.$('#map'));
+    loadPrefs();
 
     var cv = UI.$('#map');
     cv.addEventListener('mousemove', onCanvasMove);
@@ -1612,6 +1672,12 @@
     UI.$('#btnSpeed').addEventListener('click', function () {
       G.speed = G.speed === 1 ? 2 : (G.speed === 2 ? 4 : 1);
       this.textContent = 'Speed x' + G.speed;
+      savePrefs();
+    });
+    UI.$('#btnBattles').addEventListener('click', function () {
+      G.battleScene = !G.battleScene;
+      syncBattleButton();
+      savePrefs();
     });
     UI.$('#btnTitle').addEventListener('click', function () {
       if (UI.isDialogOpen()) return;
@@ -1635,6 +1701,8 @@
     });
     UI.$('#btnHowTo').addEventListener('click', showHelp);
 
+    UI.$('#btnSpeed').textContent = 'Speed x' + G.speed;
+    syncBattleButton();
     showTitle();
     loop();
   };
