@@ -103,6 +103,17 @@
     if (!u.items.length) html += '<div class="muted small">Carrying nothing.</div>';
     html += '</div>';
 
+    if (board && u.id && FE.partnersOf && FE.partnersOf(u.id).length) {
+      var bonds = FE.partnersOf(u.id).map(function (pid) {
+        var pts = FE.supportPoints(u, pid);
+        var rank = FE.rankFor(pts);
+        if (!rank) return null;
+        var name = (FE.ROSTER[pid] && FE.ROSTER[pid].name) || pid;
+        return '<span class="bond">' + UI.esc(name) + ' <b>' + rank + '</b></span>';
+      }).filter(Boolean);
+      if (bonds.length) html += '<div class="bonds">Bonds: ' + bonds.join('') + '</div>';
+    }
+
     if (terr) {
       html += '<div class="terrainline">On <b>' + terr.name + '</b>'
         + (terr.def ? ' &middot; Def +' + terr.def : '')
@@ -145,6 +156,11 @@
         + '<div class="fc__row"><span>Hit</span><b>' + hit + '</b></div>'
         + '<div class="fc__row"><span>Crit</span><b>' + crit + '</b></div>'
         + (side.effective ? '<div class="fc__eff">effective!</div>' : '')
+        + (side.support && side.support.partners.length
+            ? '<div class="fc__sup">bond ' + side.support.partners.map(function (p) {
+                return UI.esc(p.unit.name) + ' ' + p.rank;
+              }).join(', ') + '</div>'
+            : '')
         + (lethal ? '<div class="fc__eff fc__eff--kill">can kill</div>' : '')
         + '</div>';
     }

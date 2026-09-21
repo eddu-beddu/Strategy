@@ -52,6 +52,9 @@
       roster: {},          /* id -> serialised unit */
       convoy: [],
       fallen: [],
+      pendingConvos: [],   /* support conversations waiting for the interlude */
+      seenConvos: [],
+      gold: 500,
       turnsTotal: 0,
       started: Date.now()
     };
@@ -149,6 +152,7 @@
     var ch = chapter();
     G.board = buildBoard(ch, deployment);
     G.renderer.bake(G.board);
+    FE.resetChapterSupportGain(G.board.livingUnits('player'));
     G.turn = 1;
     G.phase = 'player';
     G.screen = 'map';
@@ -209,7 +213,8 @@
     all.slice(0, slots).forEach(function (u) { chosen[u.id] = true; });
     Object.keys(forced).forEach(function (id) { chosen[id] = true; });
 
-    prep = { chosen: chosen, slots: slots, forced: forced, sel: null, tab: 'units' };
+    var firstId = all.length ? all[0].id : null;
+    prep = { chosen: chosen, slots: slots, forced: forced, sel: firstId, tab: 'units' };
     G.screen = 'prep';
     document.body.dataset.screen = 'prep';
     renderPrep();
@@ -217,15 +222,43 @@
 
   function renderPrep() {
     var ch = chapter();
-    var all = livingRoster();
     var count = Object.keys(prep.chosen).filter(function (k) { return prep.chosen[k]; }).length;
 
     var html = '<div class="prep">';
-    html += '<div class="prep__head"><div><h2>' + UI.esc(ch.title) + ' — ' + UI.esc(ch.name) + '</h2>'
-      + '<p class="muted">' + objectiveText() + ' Deployment slots: <b>' + count + '/' + prep.slots + '</b></p></div></div>';
+    html += '<div class="prep__head">'
+      + '<div><h2>' + UI.esc(ch.title) + ' &mdash; ' + UI.esc(ch.name) + '</h2>'
+      + '<p class="muted">' + objectiveText() + '</p></div>'
+      + '<div class="prep__meta"><span class="gold">' + G.campaign.gold + 'G</span>'
+      + '<span class="slots">' + count + '/' + prep.slots + ' deployed</span></div></div>';
 
-    html += '<div class="prep__cols">';
-    html += '<div class="prep__list">';
+    html += '<div class="tabs">'
+      + tabBtn('units', 'Units')
+      + tabBtn('armoury', 'Armoury')
+      + tabBtn('bonds', 'Bonds')
+      + '</div>';
+
+    if (prep.tab === 'units') html += renderPrepUnits();
+    else if (prep.tab === 'armoury') html += renderPrepArmoury();
+    else html += renderPrepBonds();
+
+    html += '<div class="prep__foot">'
+      + '<button class="btn" id="prepAuto">Auto-assign</button>'
+      + '<button class="btn btn--primary" id="prepGo">Begin chapter</button>'
+      + '</div></div>';
+
+    UI.dialog({ body: html, wide: true, buttons: [] });
+    UI.paintPortraits(UI.$('#modal'));
+    wirePrep();
+  }
+
+  function tabBtn(id, label) {
+    return '<button class="tab' + (prep.tab === id ? ' tab--on' : '') + '" data-tab="' + id + '">'
+      + label + '</button>';
+  }
+
+  function renderPrepUnits() {
+    var all = livingRoster();
+    var html = '<div class="prep__cols"><div class="prep__list">';
     all.forEach(function (u) {
       var on = !!prep.chosen[u.id];
       var lock = !!prep.forced[u.id];
@@ -238,26 +271,26 @@
         + '<button class="chip' + (on ? ' chip--on' : '') + '" data-toggle="' + u.id + '"' + (lock ? ' disabled title="Must deploy"' : '') + '>'
         + (lock ? 'LOCKED' : (on ? 'DEPLOY' : 'BENCH')) + '</button></div>';
     });
-    html += '</div>';
+    html += '</div><div class="prep__side">';
 
-    /* right-hand pane: selected unit + convoy transfer */
     var sel = prep.sel ? G.campaign.roster[prep.sel] : null;
-    html += '<div class="prep__side">';
     if (sel) {
       html += UI.unitCard(sel, null);
       html += '<div class="growths"><h4>Growth rates</h4><div class="stats">';
-      FE.STATS.forEach(function (s) {
-        html += '<div class="stat"><span>' + FE.STAT_LABEL[s] + '</span><b>' + sel.growths[s] + '%</b></div>';
+      FE.STATS.forEach(function (st) {
+        html += '<div class="stat"><span>' + FE.STAT_LABEL[st] + '</span><b>' + sel.growths[st] + '%</b></div>';
       });
       html += '</div></div>';
       if (sel.desc) html += '<p class="muted small">' + UI.esc(sel.desc) + '</p>';
-      html += '<div class="prep__acts">';
-      sel.items.forEach(function (st, i) {
-        html += '<button class="btn btn--sm" data-tostore="' + i + '">&darr; Store ' + UI.esc(FE.item(st).name) + '</button>';
-      });
-      html += '</div>';
+      if (sel.items.length) {
+        html += '<div class="prep__acts"><h4>Send to convoy</h4>';
+        sel.items.forEach(function (st, i) {
+          html += '<button class="btn btn--sm" data-tostore="' + i + '">&darr; ' + UI.esc(FE.item(st).name) + '</button>';
+        });
+        html += '</div>';
+      }
     } else {
-      html += '<div class="card card--empty">Select a unit to inspect them, then move items between them and the convoy.</div>';
+      html += '<div class="card card--empty">Select a unit to inspect them.</div>';
     }
 
     html += '<div class="convoy"><h4>Convoy (' + G.campaign.convoy.length + ')</h4>';
@@ -270,19 +303,111 @@
         + '<button class="btn btn--sm" data-take="' + i + '"' + (can ? '' : ' disabled') + '>Take &uarr;</button></div>';
     });
     html += '</div></div></div>';
+    return html;
+  }
 
-    html += '<div class="prep__foot">'
-      + '<button class="btn" id="prepAuto">Auto-assign</button>'
-      + '<button class="btn btn--primary" id="prepGo">Begin chapter</button>'
-      + '</div></div>';
+  function renderPrepArmoury() {
+    var stock = FE.stockFor(G.campaign.chapterIndex);
+    var html = '<div class="prep__cols">';
 
-    UI.dialog({ body: html, wide: true, buttons: [] });
-    UI.paintPortraits(UI.$('#modal'));
-    wirePrep();
+    html += '<div class="shop"><h4>For sale</h4><div class="shop__grid">';
+    stock.forEach(function (id) {
+      var it = FE.ITEMS[id];
+      var afford = G.campaign.gold >= it.price;
+      html += '<div class="sitem' + (afford ? '' : ' sitem--poor') + '">'
+        + '<div class="sitem__head">' + UI.esc(it.name) + '</div>'
+        + UI.weaponDetail({ id: id, uses: it.uses })
+        + '<button class="btn btn--sm" data-buy="' + id + '"' + (afford ? '' : ' disabled') + '>'
+        + it.price + 'G</button></div>';
+    });
+    html += '</div></div>';
+
+    html += '<div class="shop"><h4>Convoy &mdash; sell at half price</h4>';
+    if (!G.campaign.convoy.length) html += '<div class="muted small">Nothing to sell.</div>';
+    G.campaign.convoy.forEach(function (st, i) {
+      var it = FE.item(st);
+      html += '<div class="crow"><span>' + UI.esc(it.name) + ' <em class="muted">'
+        + (it.uses !== undefined ? st.uses + '/' + it.uses : '') + '</em></span>'
+        + '<button class="btn btn--sm" data-sell="' + i + '">Sell ' + FE.sellPrice(st) + 'G</button></div>';
+    });
+    html += '</div></div>';
+    return html;
+  }
+
+  function renderPrepBonds() {
+    var all = livingRoster();
+    var html = '<div class="bondlist">';
+    var seen = {};
+    var any = false;
+    all.forEach(function (u) {
+      FE.partnersOf(u.id).forEach(function (pid) {
+        var k = FE.pairKey(u.id, pid);
+        if (seen[k]) return;
+        seen[k] = true;
+        var other = G.campaign.roster[pid];
+        if (!other) return;
+        any = true;
+        var pts = FE.supportPoints(u, pid);
+        var rank = FE.rankFor(pts);
+        var next = rank === 'A' ? null
+          : FE.SUPPORT_THRESHOLDS[rank === 'C' ? 'B' : (rank === 'B' ? 'A' : 'C')];
+        var pct = next ? Math.min(100, (pts / next) * 100) : 100;
+        html += '<div class="bondrow">'
+          + '<div class="bondrow__names"><b>' + UI.esc(u.name) + '</b> &amp; <b>' + UI.esc(other.name) + '</b></div>'
+          + '<div class="bondrow__rank">' + (rank || '&mdash;') + '</div>'
+          + '<div class="bar bar--bond"><i style="width:' + pct + '%"></i></div>'
+          + '<div class="bondrow__convos">';
+        ['C', 'B', 'A'].forEach(function (r) {
+          var unlocked = G.campaign.seenConvos.indexOf(k + '|' + r) >= 0;
+          html += '<button class="chip' + (unlocked ? ' chip--on' : '') + '"'
+            + (unlocked ? ' data-convo="' + k + '|' + r + '"' : ' disabled') + '>' + r + '</button>';
+        });
+        html += '</div></div>';
+      });
+    });
+    if (!any) html += '<div class="muted small">No bonds yet. Units who end a turn beside each other, or fight side by side, grow closer.</div>';
+    html += '</div>';
+    html += '<p class="muted small">At C, B and A a pair fights better while adjacent: up to +15 hit, +15 avoid, +2 damage and +5 crit.</p>';
+    return html;
   }
 
   function wirePrep() {
     var host = UI.$('#modal');
+    host.querySelectorAll('[data-tab]').forEach(function (el) {
+      el.addEventListener('click', function () {
+        prep.tab = el.dataset.tab;
+        renderPrep();
+      });
+    });
+    host.querySelectorAll('[data-buy]').forEach(function (el) {
+      el.addEventListener('click', function () {
+        var it = FE.ITEMS[el.dataset.buy];
+        if (!it || G.campaign.gold < it.price) return;
+        G.campaign.gold -= it.price;
+        G.campaign.convoy.push(FE.makeItem(el.dataset.buy));
+        renderPrep();
+      });
+    });
+    host.querySelectorAll('[data-sell]').forEach(function (el) {
+      el.addEventListener('click', function () {
+        var st = G.campaign.convoy.splice(+el.dataset.sell, 1)[0];
+        if (st) G.campaign.gold += FE.sellPrice(st);
+        renderPrep();
+      });
+    });
+    host.querySelectorAll('[data-convo]').forEach(function (el) {
+      el.addEventListener('click', function () {
+        var parts = el.dataset.convo.split('|');
+        var lines = FE.supportConversation(parts[0], parts[1], parts[2]);
+        if (!lines) return;
+        var an = (FE.ROSTER[parts[0]] || {}).name || parts[0];
+        var bn = (FE.ROSTER[parts[1]] || {}).name || parts[1];
+        storyDialog(an + ' & ' + bn + ' \u2014 Support ' + parts[2], lines, function () {
+          UI.closeDialog();
+          renderPrep();
+        });
+      });
+    });
     host.querySelectorAll('[data-unit]').forEach(function (el) {
       el.addEventListener('click', function (e) {
         if (e.target.dataset.toggle !== undefined) return;
@@ -374,6 +499,59 @@
 
   function setForecastPanel(html) {
     UI.$('#forecastPanel').innerHTML = html || '';
+  }
+
+  /* ---------------------------------------------------------------
+     Supports
+     --------------------------------------------------------------- */
+  function noteRankUp(a, b, rank) {
+    if (!rank) return;
+    var id = FE.pairKey(a.id, b.id) + '|' + rank;
+    if (G.campaign.seenConvos.indexOf(id) >= 0) return;
+    if (G.campaign.pendingConvos.some(function (c) { return c.id === id; })) return;
+    G.campaign.pendingConvos.push({ id: id, a: a.id, b: b.id, rank: rank, aName: a.name, bName: b.name });
+    UI.log('<b>' + UI.esc(a.name) + '</b> and <b>' + UI.esc(b.name)
+      + '</b> reached support rank ' + rank + '.', 'good');
+  }
+
+  /* Units who spend a turn shoulder to shoulder grow closer. */
+  function tickSupports() {
+    var players = G.board.livingUnits('player');
+    for (var i = 0; i < players.length; i++) {
+      for (var d = 0; d < FE.DIRS.length; d++) {
+        var o = G.board.unitAt(players[i].x + FE.DIRS[d][0], players[i].y + FE.DIRS[d][1]);
+        if (!o || o.team !== 'player') continue;
+        if (players[i].uid > o.uid) continue;   /* count each pair once */
+        noteRankUp(players[i], o, FE.addSupport(players[i], o, 2));
+      }
+    }
+  }
+
+  /* Fighting beside a friend is worth more than standing beside one. */
+  function supportsFromCombat(unit) {
+    if (!unit || unit.team !== 'player') return;
+    for (var d = 0; d < FE.DIRS.length; d++) {
+      var o = G.board.unitAt(unit.x + FE.DIRS[d][0], unit.y + FE.DIRS[d][1]);
+      if (!o || o.team !== 'player') continue;
+      noteRankUp(unit, o, FE.addSupport(unit, o, 3));
+    }
+  }
+
+  /* Plays whatever conversations the last chapter unlocked, in order. */
+  function playConversations(done) {
+    var queue = G.campaign.pendingConvos.slice();
+    G.campaign.pendingConvos = [];
+    (function next() {
+      if (!queue.length) { done(); return; }
+      var c = queue.shift();
+      G.campaign.seenConvos.push(c.id);
+      var lines = FE.supportConversation(c.a, c.b, c.rank);
+      if (!lines) { next(); return; }
+      storyDialog(c.aName + ' & ' + c.bName + ' \u2014 Support ' + c.rank, lines, function () {
+        UI.closeDialog();
+        next();
+      });
+    })();
   }
 
   /* ---------------------------------------------------------------
@@ -903,6 +1081,9 @@
       if (up2 && defender.team === 'player') UI.log(UI.esc(defender.name) + ' reached weapon rank ' + up2 + '!', 'good');
     }
 
+    supportsFromCombat(attacker);
+    supportsFromCombat(defender);
+
     var exp = FE.combatExp(result, attacker, defender);
 
     /* Deaths */
@@ -1013,6 +1194,7 @@
       u.acted = false;
       u.buffs = {};
     });
+    tickSupports();
     /* forts and thrones mend whoever holds them */
     G.board.livingUnits().forEach(function (u) {
       var t = G.board.terrainAt(u.x, u.y);
@@ -1196,14 +1378,20 @@
       if (u.rosterId && G.campaign.roster[u.rosterId] === u) u.team = 'player';
     });
 
+    var reward = ch.reward || (800 + G.campaign.chapterIndex * 300);
+    G.campaign.gold += reward;
+    UI.log('Chapter reward: <b>' + reward + 'G</b>.', 'good');
+
     var lines = ch.outro.slice();
     var isLast = G.campaign.chapterIndex >= FE.CHAPTERS.length - 1;
     storyDialog(isLast ? 'Victory' : ch.title + ' complete', lines, function () {
       UI.closeDialog();
-      if (isLast) { showEnding(); return; }
-      G.campaign.chapterIndex++;
-      saveGame(true);
-      beginChapter();
+      playConversations(function () {
+        if (isLast) { showEnding(); return; }
+        G.campaign.chapterIndex++;
+        saveGame(true);
+        beginChapter();
+      });
     });
   }
 
@@ -1254,7 +1442,7 @@
     ['uid', 'id', 'name', 'cls', 'team', 'level', 'exp', 'stats', 'growths', 'wexp',
       'items', 'x', 'y', 'acted', 'alive', 'ai', 'aggro', 'aggroed', 'boss', 'hair',
       'drops', 'title', 'desc', 'kills', 'battles', 'hp', 'maxHp', 'lordRef',
-      'rosterId', 'talk', 'casualDown'].forEach(function (k) {
+      'rosterId', 'talk', 'casualDown', 'supports', 'supportGain'].forEach(function (k) {
         if (u[k] !== undefined) o[k] = u[k];
       });
     return o;
@@ -1271,6 +1459,9 @@
           casual: G.campaign.casual,
           convoy: G.campaign.convoy,
           fallen: G.campaign.fallen,
+          pendingConvos: G.campaign.pendingConvos,
+          seenConvos: G.campaign.seenConvos,
+          gold: G.campaign.gold,
           turnsTotal: G.campaign.turnsTotal,
           roster: Object.keys(G.campaign.roster).reduce(function (acc, k) {
             acc[k] = serialiseUnit(G.campaign.roster[k]);
@@ -1315,6 +1506,9 @@
     G.campaign.chapterIndex = data.campaign.chapterIndex;
     G.campaign.convoy = data.campaign.convoy || [];
     G.campaign.fallen = data.campaign.fallen || [];
+    G.campaign.pendingConvos = data.campaign.pendingConvos || [];
+    G.campaign.seenConvos = data.campaign.seenConvos || [];
+    G.campaign.gold = data.campaign.gold === undefined ? 500 : data.campaign.gold;
     G.campaign.turnsTotal = data.campaign.turnsTotal || 0;
     G.campaign.roster = {};
     Object.keys(data.campaign.roster || {}).forEach(function (k) {

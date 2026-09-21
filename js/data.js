@@ -310,6 +310,38 @@ FE.TERRAIN = {
   'S': { name: 'Shop',     def: 0, avo: 0,  cost: { foot: 1, horse: 1, flier: 1 }, shop: true }
 };
 
+/* -------------------------------------------------------------
+   ARMOURY
+   What the quartermaster has in stock, by chapter. Later chapters
+   unlock better steel; everything stays available once it appears.
+   ------------------------------------------------------------- */
+FE.SHOP_STOCK = [
+  ['iron_sword', 'iron_lance', 'iron_axe', 'vulnerary'],
+  ['slim_sword', 'javelin', 'hand_axe', 'iron_bow', 'fire', 'heal', 'vulnerary'],
+  ['steel_sword', 'steel_lance', 'steel_axe', 'thunder', 'lightning', 'mend'],
+  ['armorslayer', 'horseslayer', 'hammer', 'steel_bow', 'antitoxin'],
+  ['killing_edge', 'killer_lance', 'killer_axe', 'killer_bow', 'elfire', 'elixir'],
+  ['brave_sword', 'longbow', 'shine', 'physic'],
+  ['silver_sword', 'silver_lance', 'silver_axe', 'silver_bow', 'fimbulvetr']
+];
+
+FE.stockFor = function (chapterIndex) {
+  var out = [];
+  for (var i = 0; i <= chapterIndex && i < FE.SHOP_STOCK.length; i++) {
+    FE.SHOP_STOCK[i].forEach(function (id) {
+      if (out.indexOf(id) < 0) out.push(id);
+    });
+  }
+  return out;
+};
+
+FE.sellPrice = function (stack) {
+  var it = FE.ITEMS[stack.id];
+  if (!it || !it.price) return 0;
+  var frac = it.uses ? (stack.uses / it.uses) : 1;
+  return Math.max(1, Math.floor((it.price / 2) * frac));
+};
+
 FE.moveType = function (cls) {
   var c = FE.CLASSES[cls];
   if (!c) return 'foot';

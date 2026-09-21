@@ -68,13 +68,20 @@
 
     var defStat = it.magic ? FE.stat(foe, 'res') : FE.stat(foe, 'def');
     var defTerrain = terrainDefAt(board, foeTile.x, foeTile.y);
-    out.dmg = Math.max(0, out.atk - defStat - defTerrain);
 
-    var acc = FE.hitRate(unit, weaponStack) + tri * 15;
+    /* Standing beside someone you have fought alongside is worth real
+       numbers — and so is the fact that your target has company. */
+    /* measured from the tile this unit will actually be standing on */
+    var mySup = FE.supportBonus ? FE.supportBonusAt(board, unit, tile) : { hit: 0, avo: 0, dmg: 0, crit: 0 };
+    var foeSup = FE.supportBonus ? FE.supportBonusAt(board, foe, foeTile) : { hit: 0, avo: 0, dmg: 0, crit: 0 };
+    out.dmg = Math.max(0, out.atk + mySup.dmg - defStat - defTerrain);
+    out.support = mySup;
+
+    var acc = FE.hitRate(unit, weaponStack) + tri * 15 + mySup.hit;
     var avo = FE.attackSpeed(foe, foeWeapon) * 2 + FE.stat(foe, 'lck')
-            + board.terrainAt(foeTile.x, foeTile.y).avo;
+            + board.terrainAt(foeTile.x, foeTile.y).avo + foeSup.avo;
     out.hit = FE.clamp(Math.round(acc - avo), 0, 100);
-    out.crit = FE.clamp(FE.critRate(unit, weaponStack) - FE.dodge(foe), 0, 100);
+    out.crit = FE.clamp(FE.critRate(unit, weaponStack) + mySup.crit - FE.dodge(foe), 0, 100);
     out.as = FE.attackSpeed(unit, weaponStack);
     out.brave = !!it.brave;
     out.drain = !!it.drain;
