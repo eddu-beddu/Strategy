@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The March of Vale</title>
+<meta name="description" content="A turn-based tactics game in the spirit of Fire Emblem. Grid combat, the weapon triangle, permadeath, six chapters.">
+<link rel="stylesheet" href="css/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#9876;</text></svg>">
+</head>
+<body data-screen="title">
+
+<!-- ================= Title ================= -->
+<div id="titleScreen" class="title is-open">
+  <div class="title__inner">
+    <h1>The March of Vale</h1>
+    <p class="title__sub">A turn-based tactics campaign in the spirit of Fire Emblem</p>
+
+    <div class="title__opts">
+      <label>Difficulty
+        <select id="optDifficulty">
+          <option value="normal" selected>Normal</option>
+          <option value="hard">Hard — enemies are 2 levels stronger</option>
+        </select>
+      </label>
+      <label class="check">
+        <input type="checkbox" id="optCasual">
+        <span>Forgiving mode — fallen units return after the chapter</span>
+      </label>
+    </div>
+
+    <div class="title__buttons">
+      <button class="btn btn--primary" id="btnNew">New campaign</button>
+      <button class="btn" id="btnContinue">Continue</button>
+      <button class="btn" id="btnHowTo">How to play</button>
+    </div>
+    <p class="title__foot">Six chapters &middot; eleven recruitable units &middot; permanent death</p>
+  </div>
+</div>
+
+<!-- ================= Game ================= -->
+<header id="topbar">
+  <div class="topbar__left">
+    <strong id="hdrChapter">&nbsp;</strong>
+    <span class="muted" id="hdrObjective"></span>
+  </div>
+  <div class="topbar__mid">
+    <span id="hdrTurn">Turn 1</span>
+    <span class="phase phase--player" id="hdrPhase">Player Phase</span>
+    <span class="muted" id="hdrUnits"></span>
+  </div>
+  <div class="topbar__right">
+    <button class="btn btn--sm" id="btnDanger" title="Show every tile the enemy can reach (Q)">Danger</button>
+    <button class="btn btn--sm btn--primary" id="btnEndTurn" title="End your turn (E)">End Turn</button>
+    <button class="btn btn--sm" id="btnSpeed">Speed x1</button>
+    <button class="btn btn--sm" id="btnSave">Save</button>
+    <button class="btn btn--sm" id="btnLoad">Load</button>
+    <button class="btn btn--sm" id="btnHelp">?</button>
+    <button class="btn btn--sm" id="btnTitle">Title</button>
+  </div>
+</header>
+
+<main id="app">
+  <section id="stage">
+    <canvas id="map" width="640" height="480"></canvas>
+    <div id="menuHost"></div>
+    <div id="banner" class="banner"></div>
+  </section>
+
+  <aside id="sidebar">
+    <div id="forecastPanel"></div>
+    <div id="unitPanel"></div>
+    <div id="terrainPanel"></div>
+    <div id="log"></div>
+  </aside>
+</main>
+
+<div id="modal" class="modal"></div>
+
+<script src="js/data.js"></script>
+<script src="js/sprites.js"></script>
+<script src="js/core.js"></script>
+<script src="js/grid.js"></script>
+<script src="js/combat.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/render.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/maps.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>
